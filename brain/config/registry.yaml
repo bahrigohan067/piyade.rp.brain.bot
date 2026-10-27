@@ -1,0 +1,153 @@
+# ════════════════════════════════════════════════════════════════════
+#  Piyade RP — Beyin Bot Kayıt Defteri
+# ════════════════════════════════════════════════════════════════════
+#  agent_installed : Varsayılan `false`. Diğer botlara `brain_agent.py`
+#                    eklenmediği sürece 90 sn nabız/donma kontrolü KAPALIDIR
+#                    (yanlış alarm üretmez).
+#  expects_volume  : Bot yerel `data/` klasöründe kalıcı veri tutuyorsa `true`.
+# ════════════════════════════════════════════════════════════════════
+
+bots:
+  ana-bot:
+    name: "Ana Bot"
+    repo: bahrigohan067/piyade.rp.bot
+    lang: python
+    railway_service: piyade.rp.bot
+    discord_bot_id: 1544144846875267253
+    agent_installed: false
+    expects_volume: true
+    modules: [assets_cog, atm_soygunu, bot_status, cete_sistemi, envanter_sistemi, feedback,
+              ilkyardim, izin_yonetimi, kufur_engel, live_radar, media_restrict, meth_uretimi,
+              moderation, registration, role_manager, rol_secim, rp_oylama, sa_as, ses_odasi,
+              uyari_sistemi, vs_talep, welcome, yonetim_paneli]
+    critical: [registration, moderation, kufur_engel]
+    auto_pausable: [live_radar, atm_soygunu, meth_uretimi, rp_oylama, feedback]
+    startup_markers: ["Bot basariyla giris yapti"]
+    dependencies: [discord, erlc]
+
+  bot-1:
+    name: "Oyun / ER:LC Botu"
+    repo: bahrigohan067/piyade.rp.bot.1
+    lang: python
+    railway_service: piyade.rp.bot.1
+    discord_bot_id: 1557030714518540301
+    agent_installed: false
+    expects_volume: true
+    modules: [arac_sistemi, core]
+    critical: []
+    auto_pausable: [arac_sistemi]
+    startup_markers: ["Bot Aktif:"]
+    dependencies: [discord, erlc]
+
+  rehber:
+    name: "Rehber Botu"
+    repo: bahrigohan067/piyade.rp.bot.rehber
+    lang: python
+    railway_service: piyade.rp.bot.rehber
+    discord_bot_id: null          # REHBER_BOT_ID — doldurulmalı
+    agent_installed: false
+    expects_volume: false
+    modules: [destek_ses_uyari, rehber_commands, rehber_listener, rehber_views]
+    critical: []
+    auto_pausable: []
+    startup_markers: ["Rehber Botu Başarıyla Giriş Yaptı"]
+    dependencies: [discord, erlc]
+    voice_presence:
+      channel_id: 1532829788824404274
+      grace_checks: 2
+
+  ticket-bot:
+    name: "Destek / Ticket Botu"
+    repo: bahrigohan067/piyade.rp.destek.ticket.bot
+    lang: python
+    railway_service: piyade.rp.destek.ticket.bot
+    discord_bot_id: null          # doldurulmalı
+    agent_installed: false
+    expects_volume: true
+    modules: [tickets, yardim_bekleme]
+    critical: [tickets]
+    auto_pausable: []
+    startup_markers: ["Bot Başarıyla Giriş Yaptı"]
+    dependencies: [discord, erlc]
+    scheduled_messages:
+      - name: gece_rapor
+        module: yardim_bekleme
+        channel_id: 1532828404347437287
+        time: "00:00"
+        grace_minutes: 5
+        contains: ["Kapanış Raporu", "Gece Raporu"]
+
+  yapay-zeka:
+    name: "Yapay Zeka Botu"
+    repo: bahrigohan067/piyade.rp.yapay.zeka.bot
+    lang: python
+    railway_service: piyade.rp.yapay.zeka.bot
+    discord_bot_id: null          # AI_BOT_ID — doldurulmalı
+    agent_installed: false
+    expects_volume: true
+    modules: [ai_ticket_assistant]
+    critical: []
+    auto_pausable: [ai_ticket_assistant]
+    startup_markers: ["Yapay Zeka Destek Botu Aktif"]
+    dependencies: [discord, gemini]
+    ticket_contract:
+      channel_prefix: "ticket-"
+      timeout_seconds: 60
+
+  muzik:
+    name: "Müzik Botu"
+    repo: bahrigohan067/piyade.rp.music.bot
+    lang: python
+    railway_service: piyade.rp.music.bot
+    discord_bot_id: 1557037486478467136
+    agent_installed: false
+    expects_volume: false
+    modules: [music]
+    critical: []
+    auto_pausable: []
+    startup_markers: ["Bot Aktif:"]
+    dependencies: [discord]
+
+  guvenlik:
+    name: "Güvenlik Botu"
+    repo: bahrigohan067/piyader.rp.security.bot
+    lang: node
+    railway_service: piyader.rp.security.bot
+    discord_bot_id: null          # doldurulmalı
+    agent_installed: false
+    expects_volume: true
+    modules: []
+    critical: ["*"]               # asla otomatik duraklatma
+    auto_pausable: []
+    startup_markers: ["ZERO-CRASH GÜVENLİK SİSTEMİ AKTİF"]
+    dependencies: [discord]
+    expect_periodic:
+      - name: snapshot
+        pattern: "HAFIZA & YEDEKLEME TAMAMLANDI"
+        every_minutes: 30
+        grace_minutes: 15
+
+site:
+  name: "Piyade RP Sitesi"
+  repo: bahrigohan067/piyade.rp.site
+  railway_service: piyade.rp.site
+  base_url: "https://piyade-rp.up.railway.app"
+  checks:
+    # piyade.rp.site/src/app/page.tsx
+    - name: ana_sayfa
+      path: "/"
+      expect: [200]
+      critical: true
+    # piyade.rp.site/src/app/api/status/route.ts -> { online: true, erlc: { connected, currentPlayers, maxPlayers, queueCount } }
+    - name: durum_api
+      path: "/api/status"
+      expect: [200]
+      json_erlc: true
+    # piyade.rp.site/src/app/api/auth/discord/route.ts -> 307/302 redirect to Discord OAuth
+    - name: discord_oauth
+      path: "/api/auth/discord"
+      expect: [302, 303, 307, 308]
+    # piyade.rp.site/src/app/api/auth/callback/discord/route.ts -> ?code olmadan 307 redirect (/?error=no_code)
+    - name: oauth_callback
+      path: "/api/auth/callback/discord"
+      expect_not_5xx: true
